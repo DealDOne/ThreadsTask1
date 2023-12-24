@@ -1,15 +1,18 @@
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
         String[] texts = new String[25];
-        List<Thread> threads = new ArrayList<>(25);
+        List<FutureTask<Integer>> futureTasks = new ArrayList<>(25);
         long startThreads = System.currentTimeMillis();
         for (int tx = 0; tx < texts.length; tx++) {
             int numberOfThread = tx;
             texts[tx] = generateText("aab", 30_000);
-            Runnable myRunnable = () -> {
+            Callable<Integer> myCallable = ()-> {
                 int maxSize = 0;
                 for (int i = 0; i < texts[numberOfThread].length(); i++) {
                     for (int j = 0; j < texts[numberOfThread].length(); j++) {
@@ -29,44 +32,29 @@ public class Main {
                     }
                 }
                 System.out.println(texts[numberOfThread].substring(0, 100) + " -> " + maxSize);
+                return maxSize;
             };
-
-            threads.add(new Thread(myRunnable));
-            threads.get(tx).start();
+            FutureTask<Integer> integerFutureTask = new FutureTask<>(myCallable);
+            futureTasks.add(integerFutureTask);
+            new Thread(integerFutureTask).start();
         }
 
-        for (Thread thread : threads) {
-            thread.join();
+        int maxSize = 0;
+        for (FutureTask<Integer> futureTask: futureTasks){
+            try {
+                int size  = futureTask.get();
+                if (size > maxSize) {
+                    maxSize = size;
+                }
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
         }
+
         long endThreads = System.currentTimeMillis();
 
-        System.out.println("Time: " + (endThreads - startThreads) + "ms");
+        System.out.println("maxSize is " + maxSize);
 
-        long startTs = System.currentTimeMillis(); // start time
-        for (String text : texts) {
-            int maxSize = 0;
-            for (int i = 0; i < text.length(); i++) {
-                for (int j = 0; j < text.length(); j++) {
-                    if (i >= j) {
-                        continue;
-                    }
-                    boolean bFound = false;
-                    for (int k = i; k < j; k++) {
-                        if (text.charAt(k) == 'b') {
-                            bFound = true;
-                            break;
-                        }
-                    }
-                    if (!bFound && maxSize < j - i) {
-                        maxSize = j - i;
-                    }
-                }
-            }
-            System.out.println(text.substring(0, 100) + " -> " + maxSize);
-        }
-        long endTs = System.currentTimeMillis(); // end time
-
-        System.out.println("Time: " + (endTs - startTs) + "ms");
     }
 
     public static String generateText(String letters, int length) {
