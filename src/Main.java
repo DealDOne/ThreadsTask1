@@ -8,7 +8,6 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
         String[] texts = new String[25];
         List<FutureTask<Integer>> futureTasks = new ArrayList<>(25);
-        long startThreads = System.currentTimeMillis();
         for (int tx = 0; tx < texts.length; tx++) {
             int numberOfThread = tx;
             texts[tx] = generateText("aab", 30_000);
@@ -50,8 +49,6 @@ public class Main {
                 throw new RuntimeException(e);
             }
         }
-
-        long endThreads = System.currentTimeMillis();
 
         System.out.println("maxSize is " + maxSize);
 
